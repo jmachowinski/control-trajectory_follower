@@ -58,7 +58,14 @@ void TrajectoryFollower::setDistanceError(double error)
 
 void TrajectoryFollower::setForwardLength(double length)
 {
-    forwardLength = length;
+    if(controllerType == 0)
+    {
+        targetGenerator.setForwardLength(forwardLength + gpsCenterofRotationOffset);
+    }
+    else
+    {
+        targetGenerator.setForwardLength(gpsCenterofRotationOffset);
+    }
 }
   
 enum TrajectoryFollower::FOLLOWER_STATUS TrajectoryFollower::traverseTrajectory(Eigen::Vector2d &motionCmd, const base::Pose &robotPose)
@@ -81,23 +88,10 @@ enum TrajectoryFollower::FOLLOWER_STATUS TrajectoryFollower::traverseTrajectory(
     pose.position = robotPose.position;
     pose.heading  = robotPose.getYaw();
     
-    double dir = 1.0;
     if(!trajectory.driveForward())
     {
         pose.heading  = angleLimit(pose.heading+M_PI);
-        dir = -1.0;
     }	
-    double fwLenght = 0;
-    if(controllerType == 0)
-    {
-        fwLenght = dir * forwardLength + gpsCenterofRotationOffset;
-    }
-    else
-    {
-        fwLenght = dir * gpsCenterofRotationOffset;
-    }
-
-    pose.position += AngleAxisd(pose.heading, Vector3d::UnitZ()) * Vector3d(fwLenght, 0, 0);
 
     //note, we don't use the function poseError here, as it would call findOneClosestPoint which we don't want.
     Eigen::Vector3d vError = base::Vector3d(trajectory.spline.distanceError(pose.position, param), trajectory.spline.headingError(pose.heading, param), param);

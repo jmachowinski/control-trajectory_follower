@@ -57,7 +57,7 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
 {
     base::Trajectory &trajectory(currentTrajectory);
     
-    double distanceMoved = (Eigen::Vector2d(robotPose.position.x(), robotPose.position.y()) - Eigen::Vector2d(lastRobotPose.position.x(), lastRobotPose.position.y())).norm() * direction; 
+    double distanceMoved = (robotPose.position.head(2) - lastRobotPose.position.head(2)).norm() * direction; 
 
     
     double guess = trajectory.spline.advance(para, distanceMoved, 0.001).first;
