@@ -57,6 +57,29 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
 {
     base::Trajectory &trajectory(currentTrajectory);
     
+    //workaround for jumps, due to e.g SLAM updates
+    //if we jump, we move in the reverse direction compared to the driving direction
+    //let's check if that happened
+    Vector2d movementVector = lastRobotPose.position.head(2) - robotPose.position.head(2);
+    double movementDirection = atan2(movementVector.y(), movementVector.x());
+
+    base::Angle diff(base::Angle::fromRad(movementDirection) - base::Angle::fromRad(robotPose.getYaw()));
+    
+    if(direction < 0)
+    {
+        if(diff > base::Angle::fromDeg(90))
+        {
+            direction *= -1;
+        }
+    }
+    else
+    {
+        if(diff < base::Angle::fromDeg(90))
+        {
+            direction *= -1;
+        }
+    }
+    
     double distanceMoved = (robotPose.position.head(2) - lastRobotPose.position.head(2)).norm() * direction; 
 
     double resolution = 0.0001;
