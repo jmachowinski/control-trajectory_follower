@@ -7,7 +7,8 @@ namespace trajectory_follower {
 
 
 TrajectoryFollower::TrajectoryFollower(double forwardLength, double gpsCenterofRotationOffset, int controllerType):
-    bInitStable(false), newTrajectory(true), hasTrajectory(false), status(REACHED_TRAJECTORY_END), forwardLength(forwardLength), gpsCenterofRotationOffset(gpsCenterofRotationOffset), controllerType(controllerType)
+    bInitStable(false), status(REACHED_TRAJECTORY_END), forwardLength(forwardLength), gpsCenterofRotationOffset(gpsCenterofRotationOffset), controllerType(controllerType),
+    targetGenerator(0.0)
 {
     if(controllerType != 0 && 
 	controllerType != 1 && 
@@ -19,16 +20,17 @@ TrajectoryFollower::TrajectoryFollower(double forwardLength, double gpsCenterofR
 
 void TrajectoryFollower::setNewTrajectory(const base::Trajectory &trajectory)
 {
+    targetGenerator.setNewTrajectory(trajectory);
     currentTrajectory = trajectory;
-    currentTrajectory.spline.setGeometricResolution(0.001);
     bInitStable = false;
-    newTrajectory = true;
-    hasTrajectory = true;
+    status = RUNNING;
+
+    LOG_INFO_S << "Started to follow trajectory" << std::endl;
 }
     
 void TrajectoryFollower::removeTrajectory()
 {
-    hasTrajectory = false;
+    targetGenerator.removeTrajectory();
 }
     
 double angleLimit(double angle)
@@ -40,7 +42,20 @@ double angleLimit(double angle)
     else
      	return angle;
 }
-  
+ 
+void TrajectoryFollower::setEndReachedDistance(double dist)
+{
+    targetGenerator.setEndReachedDistance(dist);
+}
+
+void TrajectoryFollower::setDistanceError(double error)
+{
+    if(error > 1.0 || error < 0.0)
+        throw std::runtime_error("Error, distance error is not in interval 0 <-> 1");
+    
+    targetGenerator.setDistanceError(error);
+}
+
 void TrajectoryFollower::setForwardLength(double length)
 {
     forwardLength = length;
@@ -51,118 +66,101 @@ enum TrajectoryFollower::FOLLOWER_STATUS TrajectoryFollower::traverseTrajectory(
     motionCmd(0) = 0.0; 
     motionCmd(1) = 0.0; 
 
-    if(!hasTrajectory)
-	return REACHED_TRAJECTORY_END;
+    double param;
+    
+    TrajectoryTargetCalculator::TARGET_CALCULATOR_STATUS genStatus = targetGenerator.traverseTrajectory(param, robotPose);
+
+    if(genStatus == TrajectoryTargetCalculator::REACHED_TRAJECTORY_END || status == REACHED_TRAJECTORY_END)
+    {
+        status = REACHED_TRAJECTORY_END;
+        return REACHED_TRAJECTORY_END;
+    }
 
     base::Trajectory &trajectory(currentTrajectory);
-
-    if(newTrajectory)
-    {
-	newTrajectory = false;
-        para =  trajectory.spline.findOneClosestPoint(robotPose.position, 0.001);
-    }    
 
     pose.position = robotPose.position;
     pose.heading  = robotPose.getYaw();
     
-    if ( para < trajectory.spline.getEndParam() )
+    double dir = 1.0;
+    if(!trajectory.driveForward())
     {
-
-	double dir = 1.0;
-	if(!trajectory.driveForward())
-        {
-            pose.heading  = angleLimit(pose.heading+M_PI);
-	    dir = -1.0;
-        }	
-        double fwLenght = 0;
-        if(controllerType == 0)
-        {
-            fwLenght = dir * forwardLength + gpsCenterofRotationOffset;
-        }
-        else
-        {
-            fwLenght = dir * gpsCenterofRotationOffset;
-        }
-
-        pose.position += AngleAxisd(pose.heading, Vector3d::UnitZ()) * Vector3d(fwLenght, 0, 0);
-       
-        Eigen::Vector3d vError = trajectory.spline.poseError(pose.position, pose.heading, para);
-        para  = vError(2);
-        
-        //distance error
-	error.d = vError(0);
-        //heading error
-        error.theta_e = angleLimit(vError(1) + addPoseErrorY);
-        //spline parameter for traget point on spline
-        error.param = vError(2);
-        
-        curvePoint.pose.position 	= trajectory.spline.getPoint(para); 	    
-        curvePoint.pose.heading  	= trajectory.spline.getHeading(para);
-        curvePoint.param 		= para;
-
-	//disable this test for testing, as it seems to be not needed
-	bInitStable = true;
-        if(!bInitStable)
-        {
-	    switch(controllerType)
-	    {
-		case 0:
-		    bInitStable = oTrajController_nO.checkInitialStability(error.d, error.theta_e, trajectory.spline.getCurvatureMax());
-		    bInitStable = true;
-		    break;
-		case 1:
-		    bInitStable = oTrajController_P.checkInitialStability(error.d, error.theta_e, trajectory.spline.getCurvature(para), trajectory.spline.getCurvatureMax());
-		    break;
-		case 2:
-		    bInitStable = oTrajController_PI.checkInitialStability(error.d, error.theta_e, trajectory.spline.getCurvature(para), trajectory.spline.getCurvatureMax());
-		    break;
-		default:
-		    throw std::runtime_error("Got bad controllerType value");
-	    }
-
-            if (!bInitStable)
-            {
-                LOG_DEBUG_S << "Trajectory controller: failed initial stability test";
-                return INITIAL_STABILITY_FAILED;
-            }
-        }
-
-        double vel = currentTrajectory.speed;
-	switch(controllerType)
-	{
-	    case 0:
-		motionCmd = oTrajController_nO.update(vel, error.d, error.theta_e); 
-		break;
-	    case 1:
-		motionCmd = oTrajController_P.update(vel, error.d, error.theta_e, trajectory.spline.getCurvature(para), trajectory.spline.getVariationOfCurvature(para));
-		break;
-	    case 2:
-		motionCmd = oTrajController_PI.update(vel, error.d, error.theta_e, trajectory.spline.getCurvature(para), trajectory.spline.getVariationOfCurvature(para));
-		break;
-	    default:
-		throw std::runtime_error("Got bad controllerType value");
-	}
-
-	LOG_DEBUG_S << "Mc: " << motionCmd(0) << " " << motionCmd(1) 
-                  << " error: d " <<  error.d << " theta " << error.theta_e << " PI";
+        pose.heading  = angleLimit(pose.heading+M_PI);
+        dir = -1.0;
+    }	
+    double fwLenght = 0;
+    if(controllerType == 0)
+    {
+        fwLenght = dir * forwardLength + gpsCenterofRotationOffset;
     }
     else
     {
-	if(status != REACHED_TRAJECTORY_END)
-	{
-	    LOG_INFO_S << "Reached end of trajectory" << std::endl;
-	    status = REACHED_TRAJECTORY_END;
-	}
-	return REACHED_TRAJECTORY_END;
+        fwLenght = dir * gpsCenterofRotationOffset;
     }
 
-    if(status != RUNNING)
+    pose.position += AngleAxisd(pose.heading, Vector3d::UnitZ()) * Vector3d(fwLenght, 0, 0);
+
+    //note, we don't use the function poseError here, as it would call findOneClosestPoint which we don't want.
+    Eigen::Vector3d vError = base::Vector3d(trajectory.spline.distanceError(pose.position, param), trajectory.spline.headingError(pose.heading, param), param);
+    para  = vError(2);
+    
+    //distance error
+    error.d = vError(0);
+    //heading error
+    error.theta_e = angleLimit(vError(1) + addPoseErrorY);
+    //spline parameter for traget point on spline
+    error.param = vError(2);
+    
+    curvePoint.pose.position 	= trajectory.spline.getPoint(para).head(2); 	    
+    curvePoint.pose.orientation = trajectory.spline.getHeading(para);
+    curvePoint.param 		= para;
+
+    //disable this test for testing, as it seems to be not needed
+    bInitStable = true;
+    if(!bInitStable)
     {
-	LOG_INFO_S << "Started to follow trajectory" << std::endl;
-	status = RUNNING;
+        switch(controllerType)
+        {
+            case 0:
+                bInitStable = oTrajController_nO.checkInitialStability(error.d, error.theta_e, trajectory.spline.getCurvatureMax());
+                bInitStable = true;
+                break;
+            case 1:
+                bInitStable = oTrajController_P.checkInitialStability(error.d, error.theta_e, trajectory.spline.getCurvature(para), trajectory.spline.getCurvatureMax());
+                break;
+            case 2:
+                bInitStable = oTrajController_PI.checkInitialStability(error.d, error.theta_e, trajectory.spline.getCurvature(para), trajectory.spline.getCurvatureMax());
+                break;
+            default:
+                throw std::runtime_error("Got bad controllerType value");
+        }
+
+        if (!bInitStable)
+        {
+            LOG_DEBUG_S << "Trajectory controller: failed initial stability test";
+            return INITIAL_STABILITY_FAILED;
+        }
     }
 
-    return RUNNING;    
+    double vel = currentTrajectory.speed;
+    switch(controllerType)
+    {
+        case 0:
+            motionCmd = oTrajController_nO.update(vel, error.d, error.theta_e); 
+            break;
+        case 1:
+            motionCmd = oTrajController_P.update(vel, error.d, error.theta_e, trajectory.spline.getCurvature(para), trajectory.spline.getVariationOfCurvature(para));
+            break;
+        case 2:
+            motionCmd = oTrajController_PI.update(vel, error.d, error.theta_e, trajectory.spline.getCurvature(para), trajectory.spline.getVariationOfCurvature(para));
+            break;
+        default:
+            throw std::runtime_error("Got bad controllerType value");
+    }
+
+    LOG_DEBUG_S << "Mc: " << motionCmd(0) << " " << motionCmd(1) 
+                << " error: d " <<  error.d << " theta " << error.theta_e << " PI";
+    
+    return RUNNING;  
 }
 
 }

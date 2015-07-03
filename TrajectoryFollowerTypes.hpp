@@ -22,7 +22,7 @@ namespace trajectory_follower
     struct CurvePoint 
     {
 	double param;		// Curve parameter
-	RobotPose   pose;		// Pose on the curve	
+	base::Pose2D   pose;		// Pose on the curve	
     };
 
 }

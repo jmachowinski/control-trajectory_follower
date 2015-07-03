@@ -9,6 +9,7 @@
 #include "TrajectoryControllerP.hpp"
 #include "TrajectoryControllerPI.hpp"
 #include "TrajectoryFollowerTypes.hpp"
+#include "TrajectoryTargetCalculator.hpp"
 
 namespace trajectory_follower {
 
@@ -24,6 +25,19 @@ public:
     };
 
     TrajectoryFollower(double forwardLength, double gpsCenterofRotationOffset, int controllerType);
+    
+    /**
+     * If the distance between the end point of the spline 
+     * and the robot is below this distance, the trajectory
+     * is considered driven;
+     * */
+    void setEndReachedDistance(double dist);
+
+    /**
+     * Error in distance on the position input.
+     * Must be in the Interval [0,1]
+     * */
+    void setDistanceError(double error);
     
     /**
      * Sets a new trajectory
@@ -96,8 +110,6 @@ public:
     
 private:
     bool bInitStable;
-    bool newTrajectory;
-    bool hasTrajectory;
     base::Trajectory currentTrajectory;
 
     FOLLOWER_STATUS status;
@@ -118,8 +130,9 @@ private:
     RobotPose pose;
 
     double addPoseErrorY;   
+    
+    TrajectoryTargetCalculator targetGenerator;
 
-    TrajectoryFollower() {}
 };
 
 }
