@@ -59,12 +59,16 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
     
     double distanceMoved = (robotPose.position.head(2) - lastRobotPose.position.head(2)).norm() * direction; 
 
+    double resolution = 0.0001;
     
-    double guess = trajectory.spline.advance(para, distanceMoved, 0.001).first;
+    double errorMargin = distanceMoved * positionError;
+    errorMargin = std::max(errorMargin, resolution);
+    
+    double guess = trajectory.spline.advance(lastParam, distanceMoved, resolution).first;
 
     //Find upper and lower bound for local search
-    double start = trajectory.spline.advance(para, -(distanceMoved * positionError), 0.001).first;
-    double end = trajectory.spline.advance(para, +(distanceMoved * positionError), 0.001).first;
+    double start = trajectory.spline.advance(lastParam, distanceMoved - errorMargin, resolution).first;
+    double end = trajectory.spline.advance(lastParam, distanceMoved + errorMargin, resolution).first;
 
     Eigen::Vector3d pos(robotPose.position);
     pos.z() = 0;
@@ -72,7 +76,7 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
 
     Eigen::Vector3d splinePos;
 
-    double newParam = trajectory.spline.localClosestPointSearch(pos, guess, start, end, 0.001);
+    double newParam = trajectory.spline.localClosestPointSearch(pos, guess, start, end, resolution);
 
     splinePos = trajectory.spline.getPoint(newParam);
 
