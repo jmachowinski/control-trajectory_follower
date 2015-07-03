@@ -34,7 +34,18 @@ public:
      * */
     enum TARGET_CALCULATOR_STATUS traverseTrajectory(Eigen::Vector3d &targetPoint, const base::Pose &robotPose);
 
+    /**
+     * Generates a new target point on the trajectory
+     * */
+    enum TARGET_CALCULATOR_STATUS traverseTrajectory(double &param, const base::Pose &robotPose);
+
     void setForwardLength(double length);
+    
+    /**
+     * Error in distance on the position input.
+     * Must be in the Interval [0,1]
+     * */
+    void setDistanceError(double error);
     
     /**
      * If the distance between the end point of the spline 
@@ -51,6 +62,8 @@ public:
 private:
     double getDistanceXY(const base::Pose &robotPose, const base::Waypoint &wp) const;
     
+    double computeNextParam(double lastParam, double direction, const base::Pose& robotPose, const base::Pose& lastRobotPose);
+    
     bool newTrajectory;
     bool hasTrajectory;
     base::Trajectory currentTrajectory;
@@ -66,7 +79,12 @@ private:
     base::Waypoint targetPoint;
     base::Waypoint endPoint;
 
-    double addPoseErrorY;   
+    base::Pose lastRobotPose;
+    
+    //Error in the position during movement.
+    //Must be a value between 0 an 1, were 0.1 
+    //means 10% error.
+    double positionError;
 };
 
 }
