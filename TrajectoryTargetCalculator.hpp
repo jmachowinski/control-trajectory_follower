@@ -64,7 +64,6 @@ private:
     
     double computeNextParam(double lastParam, double direction, const base::Pose& robotPose, const base::Pose& lastRobotPose);
     
-    bool newTrajectory;
     bool hasTrajectory;
     base::Trajectory currentTrajectory;
 

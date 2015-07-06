@@ -6,7 +6,6 @@ using namespace Eigen;
 
 trajectory_follower::TrajectoryTargetCalculator::TrajectoryTargetCalculator(double forwardLength) : forwardLength(forwardLength), positionError(0.1)
 {
-    newTrajectory = false;
     hasTrajectory = false;
     
     endReachedDistance = 0;
@@ -22,7 +21,8 @@ void trajectory_follower::TrajectoryTargetCalculator::setNewTrajectory(const bas
     
     trajectoryLength = currentTrajectory.spline.length(currentTrajectory.spline.getStartParam(), currentTrajectory.spline.getEndParam(), 0.01);
     
-    newTrajectory = true;
+    para = currentTrajectory.spline.getStartParam();
+    
     hasTrajectory = true;
     
     std::cout << "Got new Trajectory Start Param " << trajectory.spline.getStartParam() << " end Param " << trajectory.spline.getEndParam() << std::endl;
@@ -120,19 +120,10 @@ trajectory_follower::TrajectoryTargetCalculator::TARGET_CALCULATOR_STATUS trajec
     if(!trajectory.driveForward())
         direction = -1.0;
 
-    if(newTrajectory)
+    if ( para < trajectory.spline.getEndParam() )
     {
-        newTrajectory = false;
-        para =  trajectory.spline.findOneClosestPoint(robotPose.position, 0.001);
-    }    
-    else
-    {
-
-        if ( para < trajectory.spline.getEndParam() )
-        {
-            
-            para = computeNextParam(para, direction, robotPose,  lastRobotPose);
-        }
+        
+        para = computeNextParam(para, direction, robotPose,  lastRobotPose);
     }
     
     lastRobotPose = robotPose;
