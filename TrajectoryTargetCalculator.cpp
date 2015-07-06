@@ -64,17 +64,17 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
     double movementDirection = atan2(movementVector.y(), movementVector.x());
 
     base::Angle diff(base::Angle::fromRad(movementDirection) - base::Angle::fromRad(robotPose.getYaw()));
-    
+
     if(direction < 0)
     {
-        if(diff > base::Angle::fromDeg(90))
+        if(fabs(diff.getRad()) > base::Angle::fromDeg(90).getRad())
         {
             direction *= -1;
         }
     }
     else
     {
-        if(diff < base::Angle::fromDeg(90))
+        if(fabs(diff.getRad()) < base::Angle::fromDeg(90).getRad())
         {
             direction *= -1;
         }
