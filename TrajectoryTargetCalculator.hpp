@@ -62,7 +62,7 @@ public:
 private:
     double getDistanceXY(const base::Pose &robotPose, const base::Waypoint &wp) const;
     
-    double computeNextParam(double lastParam, double direction, const base::Pose& robotPose, const base::Pose& lastRobotPose);
+    double computeNextParam(double lastParam, const base::Pose& robotPose, const base::Pose& lastRobotPose);
     
     bool hasTrajectory;
     base::Trajectory currentTrajectory;

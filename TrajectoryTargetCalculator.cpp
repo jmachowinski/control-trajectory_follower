@@ -53,7 +53,7 @@ double trajectory_follower::TrajectoryTargetCalculator::getDistanceXY(const base
     return (Eigen::Vector2d(robotPose.position.x(), robotPose.position.y()) - Eigen::Vector2d(wp.position.x(), wp.position.y())).norm();
 }
 
-double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double lastParam, double direction, const base::Pose& robotPose, const base::Pose& lastRobotPose)
+double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double lastParam, const base::Pose& robotPose, const base::Pose& lastRobotPose)
 {
     base::Trajectory &trajectory(currentTrajectory);
     
@@ -65,18 +65,23 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
 
     base::Angle diff(base::Angle::fromRad(movementDirection) - base::Angle::fromRad(robotPose.getYaw()));
 
-    if(direction < 0)
+    double direction = 1.0;
+    
+    if(!trajectory.driveForward())
     {
         if(fabs(diff.getRad()) > base::Angle::fromDeg(90).getRad())
         {
-            direction *= -1;
+            std::cout << "Detected Jump mVector " << movementVector.transpose()  << " dir " << movementDirection << " Yaw " << robotPose.getYaw() << " diff " << diff  <<  std::endl;
+            direction = -1;
         }
+        
     }
     else
     {
         if(fabs(diff.getRad()) < base::Angle::fromDeg(90).getRad())
         {
-            direction *= -1;
+            std::cout << "Detected Jump mVector " << movementVector.transpose()  << " dir " << movementDirection << " Yaw " << robotPose.getYaw() << " diff " << diff  <<  std::endl;
+            direction = -1;
         }
     }
     
@@ -103,6 +108,8 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
 
     splinePos = trajectory.spline.getPoint(newParam);
 
+    std::cout << "Computing Param, Pose : " << robotPose.position.transpose() << " Distance driven " << distanceMoved <<  " guess " << guess << " start " << start << " end " << end << " closest param " << newParam << " as pos " << splinePos.transpose() << std::endl;
+    
     return newParam;
     
 }
@@ -116,14 +123,10 @@ trajectory_follower::TrajectoryTargetCalculator::TARGET_CALCULATOR_STATUS trajec
 
     base::Trajectory &trajectory(currentTrajectory);
 
-    double direction = 1.0;
-    if(!trajectory.driveForward())
-        direction = -1.0;
-
     if ( para < trajectory.spline.getEndParam() )
     {
         
-        para = computeNextParam(para, direction, robotPose,  lastRobotPose);
+        para = computeNextParam(para, robotPose,  lastRobotPose);
     }
     
     lastRobotPose = robotPose;
@@ -149,7 +152,7 @@ trajectory_follower::TrajectoryTargetCalculator::TARGET_CALCULATOR_STATUS trajec
     
     if(forwardLength > 0.001)
     {
-        std::pair<double, double> advancedPos = trajectory.spline.advance(para, forwardLength * direction, 0.01);
+        std::pair<double, double> advancedPos = trajectory.spline.advance(para, forwardLength, 0.01);
         targetPointParam = advancedPos.first;
     }
 
