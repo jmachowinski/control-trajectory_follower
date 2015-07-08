@@ -71,7 +71,6 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
     {
         if(fabs(diff.getRad()) > base::Angle::fromDeg(90).getRad())
         {
-            std::cout << "Detected Jump mVector " << movementVector.transpose()  << " dir " << movementDirection << " Yaw " << robotPose.getYaw() << " diff " << diff  <<  std::endl;
             direction = -1;
         }
         
@@ -80,7 +79,6 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
     {
         if(fabs(diff.getRad()) < base::Angle::fromDeg(90).getRad())
         {
-            std::cout << "Detected Jump mVector " << movementVector.transpose()  << " dir " << movementDirection << " Yaw " << robotPose.getYaw() << " diff " << diff  <<  std::endl;
             direction = -1;
         }
     }
@@ -108,7 +106,6 @@ double trajectory_follower::TrajectoryTargetCalculator::computeNextParam(double 
 
     splinePos = trajectory.spline.getPoint(newParam);
 
-    std::cout << "Computing Param, Pose : " << robotPose.position.transpose() << " Distance driven " << distanceMoved <<  " guess " << guess << " start " << start << " end " << end << " closest param " << newParam << " as pos " << splinePos.transpose() << std::endl;
     
     return newParam;
     
