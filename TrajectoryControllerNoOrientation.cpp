@@ -61,11 +61,16 @@ noOrientation::update (double u1, double d, double theta_e )
 {
 
         double u2;
-        double direction;
+        double direction = 1.0;
         if(u1 >= 0)
+        {
            direction = 1.0;
+        }
         else
+        {
            direction = -1.0;
+           d = -d;
+        }
     	if(checkInstantStability(u1, d, theta_e) && !bPointTurn)
 	{
 	    u2 = (-u1*tan(theta_e) / (l1*direction) ) - ( (u1 * k(theta_e) * d) / cos(theta_e));
