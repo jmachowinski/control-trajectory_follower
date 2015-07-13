@@ -24,6 +24,8 @@ void trajectory_follower::TrajectoryTargetCalculator::setNewTrajectory(const bas
     para = currentTrajectory.spline.getStartParam();
     
     hasTrajectory = true;
+    nearEnd = false;
+    lastDistToEnd = std::numeric_limits< double >::max();
     
     std::cout << "Got new Trajectory Start Param " << trajectory.spline.getStartParam() << " end Param " << trajectory.spline.getEndParam() << std::endl;
 }
@@ -132,19 +134,30 @@ trajectory_follower::TrajectoryTargetCalculator::TARGET_CALCULATOR_STATUS trajec
 
     //check if we reached the end
     double drivenLength = trajectory.spline.length(trajectory.spline.getStartParam(), para, 0.01);
-    
+       
     if ( para >= trajectory.spline.getEndParam() ||
         (trajectoryLength - drivenLength < endReachedDistance && distToEndXY < endReachedDistance))
     {
-        if(status != REACHED_TRAJECTORY_END)
-        {
-            LOG_INFO_S << "Reached end of trajectory" << std::endl;
-            status = REACHED_TRAJECTORY_END;
-            hasTrajectory = false;
-        }
-        return REACHED_TRAJECTORY_END;
+        nearEnd = true;
     }
 
+    if(nearEnd)
+    {
+        //check if we still move towards the end position
+        if(distToEndXY > lastDistToEnd)
+        {
+            //we move away, this means we are not going
+            //to get closer, stop.
+            if(status != REACHED_TRAJECTORY_END)
+            {
+                LOG_INFO_S << "Reached end of trajectory" << std::endl;
+                status = REACHED_TRAJECTORY_END;
+                hasTrajectory = false;
+            }
+            return REACHED_TRAJECTORY_END;
+        }
+    }
+    
     double targetPointParam = para;
     
     if(forwardLength > 0.001)
@@ -161,6 +174,8 @@ trajectory_follower::TrajectoryTargetCalculator::TARGET_CALCULATOR_STATUS trajec
         status = RUNNING;
     }
 
+    lastDistToEnd = distToEndXY;
+    
     return RUNNING;
 }
 

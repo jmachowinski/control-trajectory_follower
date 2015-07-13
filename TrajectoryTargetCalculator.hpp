@@ -75,6 +75,9 @@ private:
     double forwardLength;
     double para;
     
+    bool nearEnd;
+    double lastDistToEnd;
+    
     base::Waypoint targetPoint;
     base::Waypoint endPoint;
 
