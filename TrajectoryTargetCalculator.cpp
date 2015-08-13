@@ -144,7 +144,7 @@ trajectory_follower::TrajectoryTargetCalculator::TARGET_CALCULATOR_STATUS trajec
     if(nearEnd)
     {
         //check if we still move towards the end position
-        if(distToEndXY > lastDistToEnd)
+        if(distToEndXY > lastDistToEnd || distToEndXY < 0.01)
         {
             //we move away, this means we are not going
             //to get closer, stop.
