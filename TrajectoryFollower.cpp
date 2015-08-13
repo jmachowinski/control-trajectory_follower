@@ -20,6 +20,13 @@ TrajectoryFollower::TrajectoryFollower(double forwardLength, double gpsCenterofR
 
 void TrajectoryFollower::setNewTrajectory(const base::Trajectory &trajectory)
 {
+    if(trajectory.spline.isSingleton())
+    {
+        LOG_INFO_S << "Got singleton spline, irgnoring" << std::endl;
+        targetGenerator.removeTrajectory();
+        return;
+    }
+    
     targetGenerator.setNewTrajectory(trajectory);
     currentTrajectory = trajectory;
     bInitStable = false;
