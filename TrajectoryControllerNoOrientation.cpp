@@ -60,50 +60,50 @@ noOrientation::k (double theta_e )
 noOrientation::update (double u1, double d, double theta_e )
 {
 
-        double u2;
-        double direction = 1.0;
-        if(u1 >= 0)
-        {
-           direction = 1.0;
+    double u2;
+    double direction = 1.0;
+    if(u1 >= 0)
+    {
+        direction = 1.0;
+    }
+    else
+    {
+        direction = -1.0;
+    }
+    if(checkInstantStability(u1, d, theta_e) && !bPointTurn)
+    {
+        u2 = (-(u1 * direction)*tan(theta_e) / (l1) ) - ( ((u1 * direction) * k(theta_e) * d) / cos(theta_e));
+        u2 *= direction;
+        // Regard pointTurnSpeed borders.
+        if(rotationalVelocity > 0 && u2 < -rotationalVelocity) {
+            u2 = -rotationalVelocity;
         }
-        else
-        {
-           direction = -1.0;
-        }
-    	if(checkInstantStability(u1, d, theta_e) && !bPointTurn)
-	{
-	    u2 = (-(u1 * direction)*tan(theta_e) / (l1) ) - ( ((u1 * direction) * k(theta_e) * d) / cos(theta_e));
-            u2 *= direction;
-	    // Regard pointTurnSpeed borders.
-	    if(rotationalVelocity > 0 && u2 < -rotationalVelocity) {
-	        u2 = -rotationalVelocity;
-	    }
-	    if(rotationalVelocity > 0 && u2 > rotationalVelocity) {
-	        u2 = rotationalVelocity;
-	    }	    
-	    return Eigen::Vector2d(u1, u2);
-	}
+        if(rotationalVelocity > 0 && u2 > rotationalVelocity) {
+            u2 = rotationalVelocity;
+        }	    
+        return Eigen::Vector2d(u1, u2);
+    }
 	else
 	{
 	    if(!bPointTurn)
 	    {
-		LOG_INFO_S << "Robot orientation : OUT OF BOUND. Starting Point-Turn";
-		bPointTurn = true;
+            LOG_INFO_S << "Robot orientation : OUT OF BOUND. Starting Point-Turn";
+            bPointTurn = true;
 	    }
 
 	    if(theta_e > pointTurnLowerLimit)
 	    {
-		u2 = -pointTurnSpeed;
+            u2 = -pointTurnSpeed;
 	    }
 	    else if(theta_e < -pointTurnLowerLimit)
 	    {
-		u2 = pointTurnSpeed;
+            u2 = pointTurnSpeed;
 	    }
 	    else
 	    {	
 	        LOG_INFO_S << "stopped Point-Turn. Switching to normal controller";
-		bPointTurn = false;
-		u2 = 0.0;
+		    bPointTurn = false;
+		    u2 = 0.0;
 	    }
 	    
 	    return Eigen::Vector2d(0.0,u2);
