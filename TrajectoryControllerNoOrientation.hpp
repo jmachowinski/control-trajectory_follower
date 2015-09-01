@@ -66,6 +66,8 @@ namespace trajectory_follower{
 			double l1;   // position of reference point P(l1,0) on the robot chassis  such that l1u1 > 0
 			double K0; // constant for the calculation of k(d, theta_e)
 			bool bPointTurn;
+			bool pointTurnRight;
+			bool pointTurnLeft;
             double pointTurnSpeed;
             double rotationalVelocity; // If > 0: defines the upper border of the supported rotational velocity.
             // If the angle between the front axis of the robot and the goal vector 

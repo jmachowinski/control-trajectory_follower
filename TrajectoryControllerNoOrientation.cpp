@@ -26,6 +26,8 @@ using namespace trajectory_follower;
 noOrientation::noOrientation ()
 {
     bPointTurn = false;
+    pointTurnLeft = false;
+    pointTurnRight = false;
     pointTurnSpeed = 0.2;
     rotationalVelocity = 0.0;
     pointTurnUpperLimit = M_PI_2;
@@ -91,18 +93,37 @@ noOrientation::update (double u1, double d, double theta_e )
             bPointTurn = true;
 	    }
 
+        // Pointturning will be aborted as soon as the lower limit is exceeded
+        // or a left turn is changed to a right turn (and vice versa).
+        bool abort_point_turn = false;
 	    if(theta_e > pointTurnLowerLimit)
 	    {
-            u2 = -pointTurnSpeed;
+	        if(pointTurnLeft) {
+	            abort_point_turn = true;
+	        } else {
+                u2 = -pointTurnSpeed;
+                pointTurnRight = true;
+            }
 	    }
 	    else if(theta_e < -pointTurnLowerLimit)
 	    {
-            u2 = pointTurnSpeed;
+	        if(pointTurnRight) {
+	            abort_point_turn = true;
+	        } else {
+                u2 = pointTurnSpeed;
+                pointTurnLeft = true;
+            }
 	    }
 	    else
 	    {	
-	        LOG_INFO_S << "stopped Point-Turn. Switching to normal controller";
+	        abort_point_turn = true;
+	    }
+	    
+	    if(abort_point_turn) {
+	        LOG_INFO_S << "Stopping Point-Turn. Switching to normal controller";
 		    bPointTurn = false;
+		    pointTurnLeft = false;
+		    pointTurnRight = false;
 		    u2 = 0.0;
 	    }
 	    
