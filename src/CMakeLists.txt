@@ -4,5 +4,4 @@ rock_library(trajectory_follower
     HEADERS TrajectoryFollower.hpp
             TrajectoryFollowerTypes.hpp
             SubTrajectory.hpp
-            Motion2D.hpp
     DEPS_PKGCONFIG eigen3 base-types )

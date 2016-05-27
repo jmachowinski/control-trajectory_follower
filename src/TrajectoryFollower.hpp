@@ -14,12 +14,12 @@ public:
     {
     }
 
-    virtual Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature) =0;
+    virtual base::commands::Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature) =0;
     virtual void reset() =0;
 
 protected:
     bool configured;
-    Motion2D motionCommand;
+    base::commands::Motion2D motionCommand;
 };
 
 class NoOrientationController : public Controller {
@@ -49,7 +49,7 @@ public:
         configured = true;
     }
 
-    virtual Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
+    virtual base::commands::Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
     virtual void reset() { };
 
 private:
@@ -90,7 +90,7 @@ public:
         configured = true;
     }
 
-    virtual Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
+    virtual base::commands::Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
     virtual void reset() {
         controllerIntegral = 0.;
     };
@@ -122,7 +122,7 @@ public:
         configured = true;
     }
 
-    virtual Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
+    virtual base::commands::Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
     virtual void reset() {  };
 
 private:
@@ -166,7 +166,7 @@ public:
      * Generates motion commands that should make the robot follow the
      * trajectory
      */
-    FollowerStatus traverseTrajectory(Motion2D &motionCmd, const base::Pose &robotPose);
+    FollowerStatus traverseTrajectory(base::commands::Motion2D &motionCmd, const base::Pose &robotPose);
 
     /** Computes the reference pose and the error relative to this pose */
     void computeErrors(const base::Pose& robotPose);

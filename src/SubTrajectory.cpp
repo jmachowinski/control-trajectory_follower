@@ -10,16 +10,21 @@ std::pair<bool, double> oriFinder(double start_t, double end_t, double searchedV
 double SubTrajectory::angleLimit(double angle)
 {
     if(angle > M_PI)
+    {
         return angle - 2*M_PI;
+    }
     else if (angle < -M_PI)
+    {
         return angle + 2*M_PI;
+    }
     else
+    {
         return angle;
+    }
 }
 
 SubTrajectory::SubTrajectory()
 {
-    driveMode = ModeAckermann;
     speed = 0.;
 }
 
@@ -172,18 +177,22 @@ SubTrajectory::SubTrajectory(const base::Trajectory& trajectory)
     speed = trajectory.speed;
     startPose = getIntermediatePoint(posSpline.getStartParam());
     goalPose = getIntermediatePoint(posSpline.getEndParam());
-    driveMode = ModeAckermann;
 }
 
 double SubTrajectory::advance(double curveParam, double length)
 {
-    if ((length < 0 && getDist(getStartParam(), curveParam) > std::fabs(length)) || (length > 0 && getDist(curveParam, getEndParam()) > length)) {
+    if((length < 0 && getDist(getStartParam(), curveParam) > std::fabs(length))
+        || (length > 0 && getDist(curveParam, getEndParam()) > length))
+    {
         return posSpline.advance(curveParam, length, posSpline.getGeometricResolution()).first;
-    } else if (length == 0) {
+    }
+    else if (length == 0) {
         return curveParam;
-    } else if (length < 0) {
+    }
+    else if (length < 0) {
         return getStartParam();
-    } else {
+    } else
+    {
         return getEndParam();
     }
 }
@@ -194,12 +203,10 @@ std::pair< double, double > SubTrajectory::error(const Eigen::Vector2d& pos, dou
     Eigen::Vector2d targetPose = pos;
     double heading = currentHeading;
     if(!driveForward())
+    {
         heading = angleLimit(currentHeading + M_PI);
-    double forwardLen = std::max(std::abs(forwardDist), 0.01);
-    forwardLen = copysign(forwardLen, forwardDist);
-    targetCurveParam = advance(targetCurveParam, std::abs(forwardLen));
-    targetPose += Eigen::Rotation2Dd(currentHeading) * Eigen::Vector2d(forwardLen, 0.);
-    targetCurveParam = getClosestPoint(base::Pose2D(targetPose, currentHeading), targetCurveParam, advance(curveParam, -std::abs(forwardLen)), advance(targetCurveParam, std::abs(forwardLen)));
+    }
+   
     double distanceError = posSpline.distanceError(Eigen::Vector3d(pos.x(), pos.y(), 0.), curveParam);
     double headingError = posSpline.headingError(heading, curveParam);
         
@@ -213,10 +220,10 @@ double SubTrajectory::getClosestPoint(const base::Pose2D& pose) const
 
 double SubTrajectory::getClosestPoint(const base::Pose2D& pose, double guess) const
 {
-    if(!orientationSpline.isEmpty() && posSpline.isSingleton())
+    if (!orientationSpline.isEmpty() && posSpline.isSingleton())
     {
         std::pair<bool, double> ret = oriFinder(getStartParam(), getEndParam(), pose.orientation, orientationSpline);
-        if(!ret.first)
+        if (!ret.first)
         {
             const base::geometry::Spline<1>::vector_t start = orientationSpline.getPoint(getStartParam());
             const base::geometry::Spline<1>::vector_t end = orientationSpline.getPoint(getEndParam());
@@ -228,14 +235,20 @@ double SubTrajectory::getClosestPoint(const base::Pose2D& pose, double guess) co
             double diffToEnd = fabs((endA-searched).getRad());
             double diffToStart = fabs((startA-searched).getRad());
 
-            if(diffToStart < diffToEnd)
+            if (diffToStart < diffToEnd)
+            {
                 return getStartParam();
+            }
             else
+            {
                 return getEndParam();
+            }
         }
 
-        if(guess - 0.1 > getStartParam())
+        if (guess - 0.1 > getStartParam())
+        {
             guess -= 0.1;
+        }
 
         return orientationSpline.dichotomic_search(guess, getEndParam(), boost::bind(oriFinder, _1, _2, pose.orientation, _3), 0.0001, 0.0001).second;
     }
@@ -271,7 +284,6 @@ double SubTrajectory::getDistToGoal(double startParam) const
         const base::geometry::Spline<1>::vector_t end = orientationSpline.getPoint(getEndParam());
 
         return fabs(start.x() - end.x());
-
     }
 
     return posSpline.getCurveLength(startParam, getEndParam(), posSpline.getGeometricResolution());
@@ -401,7 +413,6 @@ Lateral::Lateral(const base::Pose2D& currentPose, double angle, double length, d
     poses.push_back(currentPose);
     poses.push_back(endPose);
     interpolate(poses);
-    driveMode = ModeDiagonal;
     this->speed = speed;
 }
 
@@ -415,6 +426,5 @@ Lateral::Lateral(const base::Pose2D& currentPose, const base::Position2D& end, d
     poses.push_back(currentPose);
     poses.push_back(endPose);
     interpolate(poses);
-    driveMode = ModeDiagonal;
     this->speed = speed;
 }

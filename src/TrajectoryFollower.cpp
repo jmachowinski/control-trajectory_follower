@@ -5,7 +5,7 @@
 
 using namespace trajectory_follower;
 
-Motion2D& NoOrientationController::update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature)
+base::commands::Motion2D& NoOrientationController::update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature)
 {
     if (!configured)
     {
@@ -29,7 +29,7 @@ Motion2D& NoOrientationController::update(double speed, double distanceError, do
     return motionCommand;
 }
 
-Motion2D& ChainedController::update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature)
+base::commands::Motion2D& ChainedController::update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature)
 {
     if (!configured)
     {
@@ -40,7 +40,8 @@ Motion2D& ChainedController::update(double speed, double distanceError, double a
     u1 = speed;
 
     double direction = 1.0;
-    if(speed < 0) {
+    if(speed < 0)
+    {
         // Backward motion
         direction = -1.0;
         u1 = fabs(u1);
@@ -56,14 +57,14 @@ Motion2D& ChainedController::update(double speed, double distanceError, double a
     controllerIntegral += (s_dot * z2);
     v2 = -fabs(v1)*K0*controllerIntegral - v1*K2*z2 - fabs(v1)*K3 * z3;
     u2 = (v2 + (d_dot*curvature + distanceError*variationOfCurvature*s_dot)*tan(angleError))
-          /((1.0-distanceError*curvature)*(1+pow(tan(angleError),2))) + s_dot*curvature;
+         /((1.0-distanceError*curvature)*(1+pow(tan(angleError),2))) + s_dot*curvature;
 
     motionCommand.translation = u1*direction;
     motionCommand.rotation = u2;
     return motionCommand;
 }
 
-Motion2D& SamsonController::update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature)
+base::commands::Motion2D& SamsonController::update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature)
 {
     if (!configured)
     {
@@ -74,7 +75,8 @@ Motion2D& SamsonController::update(double speed, double distanceError, double an
     u1 = speed;
 
     double direction = 1.;
-    if(u1 < 0) {
+    if(u1 < 0)
+    {
         // Backward motion
         direction = -1.;
         u1 = fabs(u1);
@@ -109,7 +111,8 @@ TrajectoryFollower::TrajectoryFollower(const FollowerConfig& followerConfig)
     dampingCoefficient = base::unset< double >();
 
     // Configures the controller according to controller type
-    switch (controllerType) {
+    switch (controllerType)
+    {
     case CONTROLLER_NO_ORIENTATION:
         controller = new NoOrientationController(followerConf.noOrientationControllerConfig);
         break;
@@ -125,20 +128,26 @@ TrajectoryFollower::TrajectoryFollower(const FollowerConfig& followerConfig)
     }
 
     if (!base::isUnset< double >(followerConf.dampingAngleUpperLimit))
+    {
         dampingCoefficient = 1/std::log(base::Angle::fromRad(followerConf.dampingAngleUpperLimit).getDeg()+1.);
+    }
 
     configured = true;
     nearEnd = false;
 
     splineReferenceErrorCoefficient = 0.;
     if (!base::isUnset<double>(followerConf.splineReferenceErrorMarginCoefficient))
+    {
         splineReferenceErrorCoefficient = followerConf.splineReferenceErrorMarginCoefficient;
+    }
 }
 
 void TrajectoryFollower::setNewTrajectory(const SubTrajectory &trajectory, const base::Pose& robotPose)
 {
     if (!configured)
+    {
         throw std::runtime_error("TrajectoryFollower not configured.");
+    }
 
     controller->reset();
 
@@ -178,8 +187,10 @@ void TrajectoryFollower::computeErrors(const base::Pose& robotPose)
     double currentHeading = currentPose.getYaw();
 
     // Change heading based on direction of motion
-    if(!trajectory.driveForward())
+    if (!trajectory.driveForward())
+    {
         currentHeading = SubTrajectory::angleLimit(currentHeading + M_PI);
+    }
 
     Eigen::Vector2d movementVector = currentPose.position.head(2) - lastPose.position.head(2);
     double distanceMoved = movementVector.norm();
@@ -187,11 +198,15 @@ void TrajectoryFollower::computeErrors(const base::Pose& robotPose)
 
     double direction = 1.;
     if (std::abs(movementDirection - currentHeading) > base::Angle::fromDeg(90).getRad())
+    {
         direction = -1.;
+    }
 
     double errorMargin = distanceMoved*splineReferenceErrorCoefficient;
     if (!base::isUnset<double>(followerConf.splineReferenceError))
+    {
         errorMargin += std::abs(followerConf.splineReferenceError);
+    }
 
     //Find upper and lower bound for local search
     double forwardLength, backwardLength;
@@ -199,17 +214,21 @@ void TrajectoryFollower::computeErrors(const base::Pose& robotPose)
     backwardLength = forwardLength;
 
     if (!base::isUnset<double>(followerConf.maxForwardLenght))
+    {
         forwardLength = std::min(forwardLength, followerConf.maxForwardLenght);
+    }
 
     if (!base::isUnset<double>(followerConf.maxBackwardLenght))
+    {
         backwardLength = std::min(backwardLength, followerConf.maxBackwardLenght);
+    }
 
     double dist = distanceMoved*direction;
     double splineSegmentStartCurveParam, splineSegmentEndCurveParam, splineSegmentGuessCurveParam;
     splineSegmentStartCurveParam = trajectory.advance(currentCurveParameter, -backwardLength);
     splineSegmentEndCurveParam = trajectory.advance(currentCurveParameter, forwardLength);
     splineSegmentGuessCurveParam = trajectory.advance(currentCurveParameter, dist);
-    
+
     base::Pose2D splineStartPoint, splineEndPoint;
     splineStartPoint = trajectory.getIntermediatePoint(splineSegmentStartCurveParam);
     splineEndPoint = trajectory.getIntermediatePoint(splineSegmentEndCurveParam);
@@ -219,7 +238,7 @@ void TrajectoryFollower::computeErrors(const base::Pose& robotPose)
     followerData.splineSegmentEnd.position.y() = splineEndPoint.position.y();
     followerData.splineSegmentStart.orientation = Eigen::Quaterniond(Eigen::AngleAxisd(splineStartPoint.orientation, Eigen::Vector3d::UnitZ()));
     followerData.splineSegmentEnd.orientation = Eigen::Quaterniond(Eigen::AngleAxisd(splineEndPoint.orientation, Eigen::Vector3d::UnitZ()));
-    
+
     currentCurveParameter = trajectory.getClosestPoint(currentPose, splineSegmentGuessCurveParam, splineSegmentStartCurveParam, splineSegmentEndCurveParam);
 
     auto err = trajectory.error(Eigen::Vector2d(currentPose.position.x(), currentPose.position.y()), currentPose.getYaw(), currentCurveParameter, 0.);
@@ -228,19 +247,21 @@ void TrajectoryFollower::computeErrors(const base::Pose& robotPose)
     angleError = err.second;
 }
 
-FollowerStatus TrajectoryFollower::traverseTrajectory(Motion2D &motionCmd, const base::Pose &robotPose)
+FollowerStatus TrajectoryFollower::traverseTrajectory(base::commands::Motion2D &motionCmd, const base::Pose &robotPose)
 {
     motionCmd.translation = 0;
     motionCmd.rotation = 0;
-    motionCmd.heading = 0;
+    motionCmd.heading = base::Angle::fromRad(0);
 
     // Return if there is no trajectory to follow
-    if(followerStatus == TRAJECTORY_FINISHED) {
+    if (followerStatus == TRAJECTORY_FINISHED)
+    {
         LOG_INFO_S << "Trajectory follower not active";
         return followerStatus;
     }
 
-    if (!base::isUnset<double>(followerConf.slamPoseErrorCheckEllipseX) && !base::isUnset<double>(followerConf.slamPoseErrorCheckEllipseY)) {
+    if (!base::isUnset<double>(followerConf.slamPoseErrorCheckEllipseX) && !base::isUnset<double>(followerConf.slamPoseErrorCheckEllipseY))
+    {
         double rx = std::min(followerConf.slamPoseErrorCheckEllipseX, 0.6), ry = std::min(followerConf.slamPoseErrorCheckEllipseY, 0.45);
         rx = std::max(rx, 0.01), ry = std::max(ry, 0.01);
         double angle = currentPose.getYaw()+angleError;
@@ -249,15 +270,19 @@ FollowerStatus TrajectoryFollower::traverseTrajectory(Motion2D &motionCmd, const
                    + std::pow(std::sin(angle)*(x - x0) - std::cos(angle)*(y - y0), 2)/std::pow(b, 2);
         }(robotPose.position.x(), robotPose.position.y(), rx, ry, angle, currentPose.position.x(), currentPose.position.y());
 
-        if (!(slamPoseCheckVal <= 1.)) {
-            if (followerStatus != SLAM_POSE_CHECK_FAILED) {
+        if (!(slamPoseCheckVal <= 1.))
+        {
+            if (followerStatus != SLAM_POSE_CHECK_FAILED)
+            {
                 std::cout << "SLAM_POSE_CHECK_FAILED! slamPoseCheckVal is " << slamPoseCheckVal << std::endl;
                 lastFollowerStatus = followerStatus;
                 followerStatus = SLAM_POSE_CHECK_FAILED;
             }
 
             return followerStatus;
-        } else if (followerStatus == SLAM_POSE_CHECK_FAILED) {
+        }
+        else if (followerStatus == SLAM_POSE_CHECK_FAILED)
+        {
             followerStatus = lastFollowerStatus;
         }
     }
@@ -279,45 +304,59 @@ FollowerStatus TrajectoryFollower::traverseTrajectory(Motion2D &motionCmd, const
 
     bool reachedEnd = false;
     // If distance to trajectory finish set
-    if (base::isUnset<double>(followerConf.trajectoryFinishDistance)) {
+    if (base::isUnset<double>(followerConf.trajectoryFinishDistance))
+    {
         // Only curve parameter
         if (!(currentCurveParameter < trajectory.getEndParam()))
             reachedEnd = true;
-    } else {
+    }
+    else
+    {
         // Distance along curve to end point
         if (distanceToEnd <= followerConf.trajectoryFinishDistance)
         {
             if (followerConf.usePoseErrorReachedEndCheck)
+            {
                 nearEnd = true;
+            }
             else
+            {
                 reachedEnd = true;
+            }
         }
 
         if (posError <= followerConf.trajectoryFinishDistance)
+        {
             reachedEnd = true;
+        }
     }
 
-    if (nearEnd) {
+    if (nearEnd)
+    {
         if (posError > lastPosError)
+        {
             reachedEnd = true;
+        }
     }
 
     // If end reached
-    if (reachedEnd) {
+    if (reachedEnd)
+    {
         // Trajectory finished
         nearEnd = false;
         LOG_INFO_S << "Trajectory follower finished";
         followerStatus = TRAJECTORY_FINISHED;
         return followerStatus;
     }
-
-    if (checkTurnOnSpot()) {
+    
+    if (checkTurnOnSpot())
+    {
         if ((angleError < -followerConf.pointTurnEnd
                 || angleError > followerConf.pointTurnEnd)
                 && std::signbit(lastAngleError) == std::signbit(angleError))
         {
             motionCmd.rotation = pointTurnDirection * followerConf.pointTurnVelocity;
-            followerData.cmd = motionCmd.toBaseMotion2D();
+            followerData.cmd = motionCmd;
             return followerStatus;
         }
         else
@@ -336,7 +375,7 @@ FollowerStatus TrajectoryFollower::traverseTrajectory(Motion2D &motionCmd, const
     {
         motionCmd.rotation -= 2*M_PI;
     }
-    
+
     while (motionCmd.rotation < -2*M_PI)
     {
         motionCmd.rotation += 2*M_PI;
@@ -356,24 +395,39 @@ FollowerStatus TrajectoryFollower::traverseTrajectory(Motion2D &motionCmd, const
         motionCmd.rotation = std::max(motionCmd.rotation, -followerConf.maxRotationalVelocity);
     }
 
-    followerData.cmd = motionCmd.toBaseMotion2D();
+    // TODO: check drive mode
+    /*if (trajectory.driveMode == ModeLateral)
+    {
+        motionCmd.rotation = 0.;
+        motionCmd.heading = trajectory.splineHeading(currentCurveParameter);
+    }*/
+
+    followerData.cmd = motionCmd;
     return followerStatus;
 }
 
 bool TrajectoryFollower::checkTurnOnSpot()
 {
+    /*if (trajectory.driveMode == ModeLateral)
+    {
+        return false;
+    }*/
+    
     if (pointTurn)
+    {
         return true;
+    }
 
-    if(!(angleError > -followerConf.pointTurnStart && angleError < followerConf.pointTurnStart))
+    if (!(angleError > -followerConf.pointTurnStart && angleError < followerConf.pointTurnStart))
+        //|| trajectory.driveMode != ModeLateral)
     {
         std::cout << "robot orientation : OUT OF BOUND ["  << angleError << ", " << followerConf.pointTurnStart << "]. starting point-turn" << std::endl;
         pointTurn = true;
-        followerStatus = EXEC_TURN_ON_SPOT;
-        this->trajectory.driveMode = ModeTurnOnTheSpot;
 
         if (angleError > 0)
+        {
             pointTurnDirection = -1.;
+        }
 
         lastAngleError = angleError;
         return true;
