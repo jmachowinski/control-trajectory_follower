@@ -58,7 +58,14 @@ base::commands::Motion2D& SamsonController::update(double speed, double distance
 
     double u1, u2;
     u1 = speed;
-    u2 = -K2*distanceError*u1*(sin(angleError)/angleError) - K3*angleError;
+
+    double direction = 1.;
+    if (u1 < 0)
+    {
+        direction = -1.;
+    }
+
+    u2 = -K2*distanceError*u1*(sin(angleError)/angleError) - direction*K3*angleError;
 
     motionCommand.translation = u1;
     motionCommand.rotation = u2;
