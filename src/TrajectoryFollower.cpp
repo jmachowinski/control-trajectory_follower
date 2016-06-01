@@ -14,17 +14,10 @@ base::commands::Motion2D& NoOrientationController::update(double speed, double d
 
     double u1, u2;
     u1 = speed;
-    double direction = 1.;
-    if (speed < 0)
-    {
-        // Backward motion
-        direction = -1.;
-        u1 = fabs(u1);
-    }
     // No orientation controller ( Page 806 ), Assuming k(d,theta_e)=K0*cos(theta_e)
     u2 = -u1 * (tan(angleError) / l1 + distanceError * K0);
 
-    motionCommand.translation = u1 * direction;
+    motionCommand.translation = u1;
     motionCommand.rotation = u2;
     return motionCommand;
 }
@@ -39,14 +32,6 @@ base::commands::Motion2D& ChainedController::update(double speed, double distanc
     double d_dot, s_dot, z2, z3, v1, v2, u1, u2;
     u1 = speed;
 
-    double direction = 1.0;
-    if(speed < 0)
-    {
-        // Backward motion
-        direction = -1.0;
-        u1 = fabs(u1);
-    }
-
     d_dot = u1 * sin(angleError);
     s_dot = u1 * cos(angleError) / (1.0-distanceError*curvature);
 
@@ -59,7 +44,7 @@ base::commands::Motion2D& ChainedController::update(double speed, double distanc
     u2 = (v2 + (d_dot*curvature + distanceError*variationOfCurvature*s_dot)*tan(angleError))
          /((1.0-distanceError*curvature)*(1+pow(tan(angleError),2))) + s_dot*curvature;
 
-    motionCommand.translation = u1*direction;
+    motionCommand.translation = u1;
     motionCommand.rotation = u2;
     return motionCommand;
 }
@@ -73,18 +58,9 @@ base::commands::Motion2D& SamsonController::update(double speed, double distance
 
     double u1, u2;
     u1 = speed;
-
-    double direction = 1.;
-    if(u1 < 0)
-    {
-        // Backward motion
-        direction = -1.;
-        u1 = fabs(u1);
-    }
-
     u2 = -K2*distanceError*u1*(sin(angleError)/angleError) - K3*angleError;
 
-    motionCommand.translation = u1*direction;
+    motionCommand.translation = u1;
     motionCommand.rotation = u2;
     return motionCommand;
 }
