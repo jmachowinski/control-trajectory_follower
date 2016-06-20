@@ -16,7 +16,6 @@ enum FollowerStatus
 {
     TRAJECTORY_FOLLOWING,
     TRAJECTORY_FINISHED,
-    INITIAL_STABILITY_FAILED,
     SLAM_POSE_CHECK_FAILED
 };
 
@@ -122,6 +121,7 @@ struct FollowerData
 {
     double distanceError;
     double angleError;
+    double splineHeadingError;
     base::samples::RigidBodyState splineReference;
     base::samples::RigidBodyState currentPose;
     std::vector< base::Trajectory > currentTrajectory;

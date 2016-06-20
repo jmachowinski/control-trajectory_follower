@@ -39,10 +39,14 @@ base::Trajectory SubTrajectory::toBaseTrajectory()
 void SubTrajectory::interpolate(const std::vector< base::Pose2D >& poses, const std::vector< double >& orientationDiff)
 {
     if(poses.size() < 2)
+    {
         throw std::runtime_error("SubTrajectory::interpolate() given vector contains less than 2 points, interpolation is not possible");
+    }
 
     if(orientationDiff.size() != poses.size())
+    {
         throw std::runtime_error("SubTrajectory::interpolate(): Error size mismatch of poses and orientationDiff vector");
+    }
 
     startPose = poses.front();
     goalPose = poses.back();
@@ -88,7 +92,9 @@ void SubTrajectory::interpolate(const std::vector< base::Pose2D >& poses, const 
 void SubTrajectory::interpolate(const std::vector< base::Pose2D >& poses)
 {
     if(poses.size() < 2)
+    {
         throw std::runtime_error("SubTrajectory::interpolate() given vector contains less than 2 points, interpolation is not possible");
+    }
 
     startPose = poses.front();
     goalPose = poses.back();
@@ -182,35 +188,48 @@ SubTrajectory::SubTrajectory(const base::Trajectory& trajectory)
 double SubTrajectory::advance(double curveParam, double length)
 {
     if((length < 0 && getDist(getStartParam(), curveParam) > std::fabs(length))
-        || (length > 0 && getDist(curveParam, getEndParam()) > length))
+            || (length > 0 && getDist(curveParam, getEndParam()) > length))
     {
         return posSpline.advance(curveParam, length, posSpline.getGeometricResolution()).first;
     }
-    else if (length == 0) {
+    else if (length == 0)
+    {
         return curveParam;
     }
-    else if (length < 0) {
+    else if (length < 0)
+    {
         return getStartParam();
-    } else
+    }
+    else
     {
         return getEndParam();
     }
 }
 
-std::pair< double, double > SubTrajectory::error(const Eigen::Vector2d& pos, double currentHeading, double curveParam, double forwardDist)
+void SubTrajectory::error(const Eigen::Vector2d& pos, double currentHeading, double curveParam,
+                          double &distanceError, double &headingError, double &splineHeadingError)
 {
     double targetCurveParam = curveParam;
     Eigen::Vector2d targetPose = pos;
+
+    distanceError = posSpline.distanceError(Eigen::Vector3d(pos.x(), pos.y(), 0.), curveParam);
+
     double heading = currentHeading;
     if(!driveForward())
     {
         heading = angleLimit(currentHeading + M_PI);
     }
-   
-    double distanceError = posSpline.distanceError(Eigen::Vector3d(pos.x(), pos.y(), 0.), curveParam);
-    double headingError = posSpline.headingError(heading, curveParam);
-        
-    return std::make_pair(distanceError, headingError);
+    splineHeadingError = posSpline.headingError(heading, curveParam);
+
+    if (!orientationSpline.isEmpty())
+    {
+        double orientation = orientationSpline.getPoint(curveParam).x();
+        headingError = currentHeading-orientation;
+    }
+    else
+    {
+        headingError = splineHeadingError;
+    }
 }
 
 double SubTrajectory::getClosestPoint(const base::Pose2D& pose) const
@@ -404,7 +423,7 @@ Lateral::Lateral()
 }
 
 Lateral::Lateral(const base::Pose2D& currentPose, double angle, double length, double speed)
-    : SubTrajectory()
+    : Lateral()
 {
     std::vector< base::Pose2D > poses;
     base::Pose2D endPose;
@@ -417,7 +436,7 @@ Lateral::Lateral(const base::Pose2D& currentPose, double angle, double length, d
 }
 
 Lateral::Lateral(const base::Pose2D& currentPose, const base::Position2D& end, double speed)
-    : SubTrajectory()
+    : Lateral()
 {
     std::vector< base::Pose2D > poses;
     base::Pose2D endPose;

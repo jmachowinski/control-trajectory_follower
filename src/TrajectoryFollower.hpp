@@ -14,12 +14,11 @@ public:
     {
     }
 
-    virtual base::commands::Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature) =0;
+    virtual double update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature) =0;
     virtual void reset() =0;
 
 protected:
     bool configured;
-    base::commands::Motion2D motionCommand;
 };
 
 class NoOrientationController : public Controller {
@@ -49,7 +48,7 @@ public:
         configured = true;
     }
 
-    virtual base::commands::Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
+    virtual double update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
     virtual void reset() { };
 
 private:
@@ -90,7 +89,7 @@ public:
         configured = true;
     }
 
-    virtual base::commands::Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
+    virtual double update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
     virtual void reset() {
         controllerIntegral = 0.;
     };
@@ -122,7 +121,7 @@ public:
         configured = true;
     }
 
-    virtual base::commands::Motion2D& update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
+    virtual double update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature);
     virtual void reset() {  };
 
 private:
@@ -177,6 +176,7 @@ public:
     }
 
     bool checkTurnOnSpot();
+    bool checkTrajectoryFinished();
 
 private:
     bool configured;
@@ -191,10 +191,11 @@ private:
     double currentCurveParameter;
     double distanceError;
     double angleError, lastAngleError;
+    double splineHeadingError;
     double posError;
     double splineReferenceErrorCoefficient;
     FollowerData followerData;
-    FollowerStatus followerStatus, lastFollowerStatus;
+    FollowerStatus followerStatus;
     SubTrajectory trajectory;
     FollowerConfig followerConf;
     Controller *controller;
