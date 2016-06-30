@@ -229,6 +229,7 @@ void SubTrajectory::error(const Eigen::Vector2d& pos, double currentHeading, dou
     else
     {
         headingError = splineHeadingError;
+        splineHeadingError = 0;
     }
 }
 
