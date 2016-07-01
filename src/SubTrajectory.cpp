@@ -26,6 +26,8 @@ double SubTrajectory::angleLimit(double angle)
 SubTrajectory::SubTrajectory()
 {
     speed = 0.;
+    startPose = base::unset< base::Pose2D >();
+    goalPose = base::unset< base::Pose2D >();
 }
 
 base::Trajectory SubTrajectory::toBaseTrajectory()
@@ -178,7 +180,8 @@ void SubTrajectory::interpolate(base::Pose2D start, const std::vector< base::Ang
 }
 
 SubTrajectory::SubTrajectory(const base::Trajectory& trajectory)
-{
+    : SubTrajectory()
+{   
     posSpline = trajectory.spline;
     speed = trajectory.speed;
     startPose = getIntermediatePoint(posSpline.getStartParam());
@@ -322,7 +325,7 @@ const base::Pose2D& SubTrajectory::getGoalPose() const
 base::Pose2D SubTrajectory::getIntermediatePoint(double d)
 {
     base::Vector2d point;
-    if(posSpline.isSingleton())
+    if (posSpline.isSingleton() && !base::isUnset< base::Pose2D >(startPose))
     {
         point = startPose.position;
     }

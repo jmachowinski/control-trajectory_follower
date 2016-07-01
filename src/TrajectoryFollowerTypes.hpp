@@ -91,6 +91,7 @@ struct FollowerConfig
     double trajectoryFinishDistance; ///< Minimum distance to end point
     ///< of trajectory for considering it
     ///< to be reached
+    double motionControllerNeedsWaitTimeout;
     double splineReferenceError;
     double splineReferenceErrorMarginCoefficient;
     double maxForwardLenght, maxBackwardLenght;
@@ -111,7 +112,8 @@ struct FollowerConfig
           maxBackwardLenght(base::unset< double >()),
           slamPoseErrorCheckEllipseX(base::unset< double >()),
           slamPoseErrorCheckEllipseY(base::unset< double >()),
-          usePoseErrorReachedEndCheck(false)
+          usePoseErrorReachedEndCheck(false),
+          motionControllerNeedsWaitTimeout(0)
     {
     }
 };
