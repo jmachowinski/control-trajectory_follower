@@ -184,8 +184,11 @@ SubTrajectory::SubTrajectory(const base::Trajectory& trajectory)
 {   
     posSpline = trajectory.spline;
     speed = trajectory.speed;
-    startPose = getIntermediatePoint(posSpline.getStartParam());
-    goalPose = getIntermediatePoint(posSpline.getEndParam());
+    if (!posSpline.isEmpty())
+    {
+        startPose = getIntermediatePoint(posSpline.getStartParam());
+        goalPose = getIntermediatePoint(posSpline.getEndParam());
+    }
 }
 
 double SubTrajectory::advance(double curveParam, double length)
@@ -342,7 +345,14 @@ base::Pose2D SubTrajectory::getIntermediatePoint(double d)
     }
     else
     {
-        orientation = posSpline.getHeading(d);
+        try
+        {
+            orientation = posSpline.getHeading(d);
+        }
+        catch (std::runtime_error &ex)
+        {
+            std::cout << "SubTrajectory::getIntermediatePoint() error: empty or degenerate curve." << std::endl;
+        }
     }
     return base::Pose2D(point, orientation);
 }
