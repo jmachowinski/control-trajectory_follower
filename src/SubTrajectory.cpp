@@ -181,7 +181,7 @@ void SubTrajectory::interpolate(base::Pose2D start, const std::vector< base::Ang
 
 SubTrajectory::SubTrajectory(const base::Trajectory& trajectory)
     : SubTrajectory()
-{   
+{
     posSpline = trajectory.spline;
     speed = trajectory.speed;
     if (!posSpline.isEmpty())
@@ -218,14 +218,33 @@ void SubTrajectory::error(const Eigen::Vector2d& pos, double currentHeading, dou
     double targetCurveParam = curveParam;
     Eigen::Vector2d targetPose = pos;
 
-    distanceError = posSpline.distanceError(Eigen::Vector3d(pos.x(), pos.y(), 0.), curveParam);
+    distanceError = 0;
+    try
+    {
+        distanceError = posSpline.distanceError(Eigen::Vector3d(pos.x(), pos.y(), 0.), curveParam);
+    }
+    catch (std::runtime_error &ex)
+    {
+        std::cout << "SubTrajectory::error(): could not determine distanceError for curve param "
+        << curveParam << " [" << posSpline.getStartParam() << ", " << posSpline.getEndParam() << "]" << std::endl;
+    }
 
     double heading = currentHeading;
     if(!driveForward())
     {
         heading = angleLimit(currentHeading + M_PI);
     }
-    splineHeadingError = posSpline.headingError(heading, curveParam);
+    
+    splineHeadingError = 0;
+    try
+    {
+        splineHeadingError = posSpline.headingError(heading, curveParam);
+    }
+    catch (std::runtime_error &ex)
+    {
+        std::cout << "SubTrajectory::error(): could not determine splineHeadingError for curve param "
+        << curveParam << " [" << posSpline.getStartParam() << ", " << posSpline.getEndParam() << "]" << std::endl;
+    }
 
     if (!orientationSpline.isEmpty())
     {
@@ -351,7 +370,8 @@ base::Pose2D SubTrajectory::getIntermediatePoint(double d)
         }
         catch (std::runtime_error &ex)
         {
-            std::cout << "SubTrajectory::getIntermediatePoint() error: empty or degenerate curve." << std::endl;
+            std::cout << "SubTrajectory::getIntermediatePoint(): could not determine point for curve param " 
+            << d << " [" << posSpline.getStartParam() << ", " << posSpline.getEndParam() << "]" << std::endl;
         }
     }
     return base::Pose2D(point, orientation);
@@ -403,7 +423,18 @@ void SubTrajectory::setSpeed(double speed) {
 }
 
 double SubTrajectory::splineHeading(double param) {
-    return posSpline.getHeading(param);
+    double heading = 0;
+
+    try
+    {
+        heading = posSpline.getHeading(param);
+    }
+    catch (std::runtime_error &ex)
+    {
+        std::cout << "SubTrajectory::splineHeadingError(): could not determine spline heading for curve param " 
+        << param << " [" << posSpline.getStartParam() << ", " << posSpline.getEndParam() << "]" << std::endl;
+    }
+    return heading;
 }
 
 std::pair<bool, double> oriFinder(double start_t, double end_t, double searchedValue, const base::geometry::Spline<1> &spline)
