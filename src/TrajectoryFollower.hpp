@@ -181,7 +181,7 @@ public:
 private:
     bool configured;
     ControllerType controllerType;
-    bool pointTurn;
+    bool pointTurn, nearPointTurnEnd;
     double pointTurnDirection;
     bool nearEnd;
     double dampingCoefficient;

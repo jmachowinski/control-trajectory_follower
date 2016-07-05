@@ -70,6 +70,7 @@ TrajectoryFollower::TrajectoryFollower()
     : configured(false),
       controllerType(CONTROLLER_UNKNOWN ),
       pointTurn(false),
+      nearPointTurnEnd(false),
       pointTurnDirection(1.)
 {
     followerStatus = TRAJECTORY_FINISHED;
@@ -274,34 +275,39 @@ FollowerStatus TrajectoryFollower::traverseTrajectory(base::commands::Motion2D &
     lastPosError = posError;
     posError = (robotPose.position.head(2) - trajectory.getGoalPose().position).norm();
 
+    // check if rotation is in configured limits
+    if (checkTurnOnSpot())
+    {
+        if (std::abs(angleError) < base::Angle::fromDeg(5.0).getRad())
+        {
+            nearPointTurnEnd = true;
+        }
+        
+        if ((std::abs(angleError) <= followerConf.pointTurnEnd)
+            || (nearPointTurnEnd && (std::abs(angleError) > std::abs(lastAngleError))))
+        {
+            std::cout << "stopped Point-Turn. Switching to normal controller" << std::endl;
+            pointTurn = false;
+            pointTurnDirection = 1.;
+            nearPointTurnEnd = false;
+            followerStatus = TRAJECTORY_FOLLOWING;
+        }
+        else
+        {
+            motionCmd.rotation = pointTurnDirection * followerConf.pointTurnVelocity;
+            followerData.cmd = motionCmd;
+            return followerStatus;
+        }
+    }
+    
     // check if end of trajectory reached
-    if (checkTrajectoryFinished())
+    if (!pointTurn && checkTrajectoryFinished())
     {
         // trajectory finished
         nearEnd = false;
         LOG_INFO_S << "Trajectory follower finished";
         followerStatus = TRAJECTORY_FINISHED;
         return followerStatus;
-    }
-
-    // check if rotation is in configured limits
-    if (checkTurnOnSpot())
-    {
-        if ((angleError < -followerConf.pointTurnEnd
-                || angleError > followerConf.pointTurnEnd)
-                && std::signbit(lastAngleError) == std::signbit(angleError))
-        {
-            motionCmd.rotation = pointTurnDirection * followerConf.pointTurnVelocity;
-            followerData.cmd = motionCmd;
-            return followerStatus;
-        }
-        else
-        {
-            std::cout << "stopped Point-Turn. Switching to normal controller" << std::endl;
-            pointTurn = false;
-            pointTurnDirection = 1.;
-            followerStatus = TRAJECTORY_FOLLOWING;
-        }
     }
 
     // update motion command: update rule depends on configured controller type
@@ -329,7 +335,7 @@ FollowerStatus TrajectoryFollower::traverseTrajectory(base::commands::Motion2D &
     }
     
     // case: LATERAL trajectory
-    if (std::abs(splineHeadingError) > 0.1)
+    if (std::abs(splineHeadingError) > 0.025)
     {
         // TODO: check sign..
         double heading = -splineHeadingError;

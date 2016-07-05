@@ -372,6 +372,7 @@ base::Pose2D SubTrajectory::getIntermediatePoint(double d)
         {
             std::cout << "SubTrajectory::getIntermediatePoint(): could not determine point for curve param " 
             << d << " [" << posSpline.getStartParam() << ", " << posSpline.getEndParam() << "]" << std::endl;
+            orientation = startPose.orientation;
         }
     }
     return base::Pose2D(point, orientation);
@@ -433,6 +434,7 @@ double SubTrajectory::splineHeading(double param) {
     {
         std::cout << "SubTrajectory::splineHeadingError(): could not determine spline heading for curve param " 
         << param << " [" << posSpline.getStartParam() << ", " << posSpline.getEndParam() << "]" << std::endl;
+        heading = startPose.orientation;
     }
     return heading;
 }
