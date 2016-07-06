@@ -284,7 +284,8 @@ FollowerStatus TrajectoryFollower::traverseTrajectory(base::commands::Motion2D &
         }
         
         if ((std::abs(angleError) <= followerConf.pointTurnEnd)
-            || (nearPointTurnEnd && (std::abs(angleError) > std::abs(lastAngleError))))
+            || (nearPointTurnEnd && (std::abs(angleError) > std::abs(lastAngleError)))
+            || (nearPointTurnEnd && (std::abs(angleError) > base::Angle::fromDeg(5.0).getRad())))
         {
             std::cout << "stopped Point-Turn. Switching to normal controller" << std::endl;
             pointTurn = false;
