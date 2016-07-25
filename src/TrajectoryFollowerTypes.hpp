@@ -82,7 +82,6 @@ struct FollowerConfig
     ///< Chained controller
     SamsonControllerConfig samsonControllerConfig;
     
-    double dampingAngleUpperLimit;
     double maxRotationalVelocity; ///< Maximum rotational velocity, NaN if no limit is needed
     double pointTurnStart; ///< Angle error at which point turn starts
     double pointTurnEnd;   ///< Angle error at which point turn, once started, stops
@@ -97,10 +96,11 @@ struct FollowerConfig
     double maxForwardLenght, maxBackwardLenght;
     double slamPoseErrorCheckEllipseX, slamPoseErrorCheckEllipseY;
     bool usePoseErrorReachedEndCheck;
+    double headingThreshold;
+    double forwardDistance;
 
     FollowerConfig()
-        : dampingAngleUpperLimit(base::unset< double >()),
-          maxRotationalVelocity(base::unset< double >()),
+        : maxRotationalVelocity(base::unset< double >()),
           pointTurnStart(base::unset< double >()),
           pointTurnEnd(base::unset< double >()),
           pointTurnVelocity(base::unset< double >()),
@@ -113,7 +113,9 @@ struct FollowerConfig
           slamPoseErrorCheckEllipseX(base::unset< double >()),
           slamPoseErrorCheckEllipseY(base::unset< double >()),
           usePoseErrorReachedEndCheck(false),
-          motionControllerNeedsWaitTimeout(0)
+          motionControllerNeedsWaitTimeout(0),
+          headingThreshold(base::unset<double>()),
+          forwardDistance(base::unset<double>())
     {
     }
 };

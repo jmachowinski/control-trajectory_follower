@@ -13,6 +13,7 @@ public:
         : configured(false)
     {
     }
+    virtual ~Controller() { };
 
     virtual double update(double speed, double distanceError, double angleError, double curvature, double variationOfCurvature) =0;
     virtual void reset() =0;
