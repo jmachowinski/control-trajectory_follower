@@ -98,6 +98,7 @@ struct FollowerConfig
     bool usePoseErrorReachedEndCheck;
     double headingThreshold;
     double forwardDistance;
+    double nearPointturnEndThreshold;
 
     FollowerConfig()
         : maxRotationalVelocity(base::unset< double >()),
@@ -115,7 +116,8 @@ struct FollowerConfig
           usePoseErrorReachedEndCheck(false),
           motionControllerNeedsWaitTimeout(0),
           headingThreshold(base::unset<double>()),
-          forwardDistance(base::unset<double>())
+          forwardDistance(base::unset<double>()),
+          nearPointturnEndThreshold(base::unset<double>())
     {
     }
 };

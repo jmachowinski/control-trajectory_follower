@@ -170,6 +170,11 @@ TrajectoryFollower::TrajectoryFollower(const FollowerConfig& followerConfig)
     {
         followerConf.forwardDistance = base::unset<double>();
     }
+    
+    if (base::isUnset<double>(followerConf.nearPointturnEndThreshold) || followerConf.nearPointturnEndThreshold <= 0)
+    {
+        followerConf.nearPointturnEndThreshold = base::Angle::fromDeg(8.5).getRad();
+    }
 }
 
 void TrajectoryFollower::setNewTrajectory(const SubTrajectory &trajectory, const base::Pose& robotPose)
@@ -347,14 +352,14 @@ FollowerStatus TrajectoryFollower::traverseTrajectory(base::commands::Motion2D &
     // check if rotation is in configured limits
     if (checkTurnOnSpot())
     {
-        if (std::abs(angleError) < base::Angle::fromDeg(5.0).getRad())
+        if (std::abs(angleError) < followerConf.nearPointturnEndThreshold)
         {
             nearPointTurnEnd = true;
         }
 
         if ((std::abs(angleError) <= followerConf.pointTurnEnd)
                 || (nearPointTurnEnd && (std::abs(angleError) > std::abs(lastAngleError)))
-                || (nearPointTurnEnd && (std::abs(angleError) > base::Angle::fromDeg(5.0).getRad())))
+                || (nearPointTurnEnd && (std::abs(angleError) > followerConf.nearPointturnEndThreshold)))
         {
             std::cout << "stopped Point-Turn. Switching to normal controller" << std::endl;
             pointTurn = false;
