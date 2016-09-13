@@ -2,6 +2,7 @@
 #include <base/Float.hpp>
 #include <base/Angle.hpp>
 #include <boost/bind.hpp>
+#include <cmath>
 
 using namespace trajectory_follower;
 
@@ -113,7 +114,7 @@ void SubTrajectory::interpolate(const std::vector< base::Pose2D >& poses)
         double curOrientation = pose.orientation + curOffset * 2*M_PI;
 
         //linearize orientation
-        if (!base::isNaN<double>(lastOrientation))
+        if (!std::isnan(lastOrientation))
         {
             double diff1;
             double secondOri = pose.orientation;
@@ -329,7 +330,9 @@ const base::Pose2D& SubTrajectory::getGoalPose() const
 base::Pose2D SubTrajectory::getIntermediatePoint(double d)
 {
     base::Vector2d point;
-    if (posSpline.isSingleton() && !base::isUnset< base::Pose2D >(startPose))
+    if (posSpline.isSingleton() && !base::isUnset(startPose.orientation)
+        && !base::isUnset(startPose.position.x())
+        && !base::isUnset(startPose.position.y()))
     {
         point = startPose.position;
     }
